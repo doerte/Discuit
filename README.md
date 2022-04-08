@@ -13,6 +13,7 @@ This will be integrated in an GUI. So far there is a basic model (model.py) and 
 - update splitting code to include more than 1 categorical variable
 - add option to have an "absolute split" for one variable 
 - remove hard-coding of input etc and provide them as arguments OR tackle this in the GUI directly
+- add documentation to code
 
 ## To do GUI
 - finish interface design
