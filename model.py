@@ -1,17 +1,46 @@
+## Copyright 2022 Dörte de Kok
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+
+
 from typing import List, Any
 
 import pandas as pd
+import sys
 from scipy.stats import kruskal
 from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 
 # to Do: ask which column should be evenly split (correctness?) Do that first
-# to Do: ask to mark which columns are categorical
+# to Do: more than one categorical variable...
 
-# must come from input
-no_sets = 4
-inputD = pd.read_csv("input.csv")
+# must come from input. In GUI this should be selected in the GUI after opening a file!
+try:
+    no_sets = int(sys.argv[2])
+except:
+    print('You failed to provide the number of required sets'\
+        'on the command line! Your input should look as follows: '\
+        'model.py [path to csv file] [number of sets].')
+    sys.exit(1) #abort
+try:
+    inputD = pd.read_csv(sys.argv[1])
+except:
+    print('You failed to provide your input file (.csv) '\
+          'on the command line! Your input should look as follows: '\
+        'model.py [path to csv file] [number of sets].')
+    sys.exit(1)  # abort
+
 categorical_features = ["correct"]
 continuous_features = ["freq", "aoa", "image"]
 ignore_features = ["correct"]
@@ -19,29 +48,42 @@ ignore_features = ["correct"]
 
 def run_all(data, n_sets, ignore, categorical, continuous, i):
     sign = False
+
+    #get data from file
     dat = prepare_data(data, ignore, continuous, categorical)
+    
+    #form clusters
     clusters = []
     for df in dat:
         clusters_df = clustering(df)
         clusters.append(clusters_df)
 
+    #divide in sets
     sets = divide_in_sets(clusters, n_sets)
+    
+    #compare sets to each other statistically
     stats = statistics(data, sets, continuous)
     for feat in stats:
         if feat[2] < 0.2:
             sign = True
             print(feat, " is too close to significance, run:", i)
 
+    #run again if sets are not different enough (max. 20 times)
     if sign and i < 20:
         ind = i + 1
         run_all(data, n_sets, ignore, categorical, continuous, ind)
+    
+    #give up trying after 20 runs
     elif sign:
         print("Ran 20 different models, none achieves a significance value of p>.2 on all features.")
         print("sets: ", sets)
         print(stats)
+    
+    #report outcome of succesful run
     else:
         print("sets: ", sets)
         print(stats)
+        #add: save sets (and statistics) to file
 
 
 def prepare_data(data, ignore, continuous, categorical):
