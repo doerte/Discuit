@@ -41,8 +41,8 @@ except:
         'model.py [path to csv file] [number of sets].')
     sys.exit(1)  # abort
 
-categorical_features = ["correct"]
-continuous_features = ["freq", "aoa", "image"]
+categorical_features = ["wordclass"]
+continuous_features = ["freq", "image"]
 ignore_features = ["correct"]
 
 
@@ -51,7 +51,7 @@ def run_all(data, n_sets, ignore, categorical, continuous, i):
 
     #get data from file
     dat = prepare_data(data, ignore, continuous, categorical)
-    
+
     #form clusters
     clusters = []
     for df in dat:
@@ -81,12 +81,26 @@ def run_all(data, n_sets, ignore, categorical, continuous, i):
     
     #report outcome of succesful run
     else:
+        #create .csv files for new sets
+        counter = 0
+        for item_set in sets:
+            counter = counter + 1
+            temp_set = inputD.iloc[item_set]
+            file_name = "output_set_" + str(counter) + ".csv"
+            temp_set.to_csv(file_name)
+
+
         print("sets: ", sets)
         print(stats)
-        #add: save sets (and statistics) to file
+        #add: save statistics to file
+
+        #BUG: seems like items area in more than 1 set... first 15 double than 4 single, 20-35 missing
 
 
 def prepare_data(data, ignore, continuous, categorical):
+    #remove first column (item name)
+    data = data.drop(data.columns[[0]], axis=1)
+   
     # split by "ignore" feature and remove ignored features from clustering
     grouped = data.groupby('correct')
     data_transformed = []
@@ -101,9 +115,7 @@ def prepare_data(data, ignore, continuous, categorical):
         data_x[continuous] = mms.fit_transform(data_x[continuous])
 
         data_transformed.append(data_x)
-
     return data_transformed
-
 
 def clustering(transformed_data):
     cl_range = range(2, len(transformed_data))
