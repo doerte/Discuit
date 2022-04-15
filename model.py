@@ -94,27 +94,35 @@ def run_all(data, n_sets, ignore, categorical, continuous, i):
         print(stats)
         #add: save statistics to file
 
-        #BUG: seems like items area in more than 1 set... first 15 double than 4 single, 20-35 missing
+        #BUG: seems like items area in more than 1 set... first 15 double than 4 single, 20-35 missing when grouping by "ignore" -revisit grouping
 
 
 def prepare_data(data, ignore, continuous, categorical):
     #remove first column (item name)
     data = data.drop(data.columns[[0]], axis=1)
+    data = data.drop(columns=ignore) #only nec if not grouped first
    
     # split by "ignore" feature and remove ignored features from clustering
-    grouped = data.groupby('correct')
+    #grouped = data.groupby('correct')
     data_transformed = []
 
-    for name, group in grouped:
+    #for name, group in grouped:
         # drop ignored columns from further analysis
-        data_x = group.drop(columns=ignore)
+    #    data_x = group.drop(columns=ignore)
         # dummy-code categorical
 
         # transform data for fair comp continuous/categorical
-        mms = MinMaxScaler()
-        data_x[continuous] = mms.fit_transform(data_x[continuous])
+    #    mms = MinMaxScaler()
+    #    data_x[continuous] = mms.fit_transform(data_x[continuous])
+    #   data_transformed.append(data_x)
 
-        data_transformed.append(data_x)
+    #return data_transformed
+
+    #only necessary if not grouped by ignore feature
+    mms = MinMaxScaler()
+    data[continuous] = mms.fit_transform(data[continuous])
+    data_transformed.append(data)
+
     return data_transformed
 
 def clustering(transformed_data):
@@ -130,6 +138,7 @@ def clustering(transformed_data):
         if sil > largest_sil[1]:
             largest_sil = (k, sil)
     km_final = KMeans(n_clusters=largest_sil[0], init='k-means++', n_init=1)
+    print(km_final)
     pred_cluster = km_final.fit_predict(transformed_data)
 
     for k in range(0, largest_sil[0]):
@@ -138,6 +147,7 @@ def clustering(transformed_data):
     for item in range(0, len(pred_cluster)):
         clusters[pred_cluster[item]].append(item)
 
+    #print(clusters)
     return clusters
 
 
