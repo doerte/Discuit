@@ -81,14 +81,20 @@ def run_all(data, n_sets, ignore, categorical, continuous, i):
     
     #report outcome of succesful run
     else:
-        #create .csv files for new sets
-        counter = 0
-        for item_set in sets:
-            counter = counter + 1
-            temp_set = inputD.iloc[item_set]
-            file_name = "output_set_" + str(counter) + ".csv"
-            temp_set.to_csv(file_name)
+        #create .csv files including set allocation
+        
+        #make list with setname per input item
+        set_numbers = []
+        for item in inputD.index:
+            for i in range(len(sets)):
+                if item in sets[i]:
+                    set_numbers.append(i+1)
+            
+        #add new column
+        inputD['set_number'] = set_numbers
 
+        #output file
+        inputD.to_csv("output.csv", index=False)
 
         print("sets: ", sets)
         print(stats)
@@ -138,7 +144,6 @@ def clustering(transformed_data):
         if sil > largest_sil[1]:
             largest_sil = (k, sil)
     km_final = KMeans(n_clusters=largest_sil[0], init='k-means++', n_init=1)
-    print(km_final)
     pred_cluster = km_final.fit_predict(transformed_data)
 
     for k in range(0, largest_sil[0]):
