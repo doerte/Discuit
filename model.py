@@ -194,5 +194,7 @@ def statistics(data, sets, features):
         stats.append([feat, stat, p])
     return stats
 
-
-run_all(inputD, no_sets, ignore_features, categorical_features, continuous_features, 0)
+if no_sets > 1:
+    run_all(inputD, no_sets, ignore_features, categorical_features, continuous_features, 0)
+else:
+    print("Please use more than 1 set for this tool to be meaningful!")
