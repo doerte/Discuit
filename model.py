@@ -82,13 +82,12 @@ def run_all(data, n_sets, ignore, categorical, continuous, i):
     #report outcome of succesful run
     else:
         #create .csv files including set allocation
-        
         #make list with setname per input item
         set_numbers = []
         for item in inputD.index:
-            for i in range(len(sets)):
-                if item in sets[i]:
-                    set_numbers.append(i+1)
+            for j in range(len(sets)):
+                if item in sets[j]:
+                    set_numbers.append(j+1)
             
         #add new column
         inputD['set_number'] = set_numbers
@@ -98,7 +97,18 @@ def run_all(data, n_sets, ignore, categorical, continuous, i):
 
         print("sets: ", sets)
         print(stats)
-        #add: save statistics to file
+
+        # save statistics to file if there was more than 1 set
+        if no_sets > 1:
+            f = open("statistics.txt", "w")
+            iterations = i+1
+            stat_string = ("Number of iterations: %s \n \nResults of Kruskall-Wallis Anovas for the following variables:\n"  % iterations)
+        
+            for test in stats:
+                stat_string += ("'" + stats[stats.index(test)][0] + "' (X2(%s) = %s, p = %s)" %(no_sets-1, round(stats[stats.index(test)][1],3), round(stats[stats.index(test)][2],3)) + ";\n")
+
+            f.write(stat_string)
+            f.close()
 
         #BUG: seems like items area in more than 1 set... first 15 double than 4 single, 20-35 missing when grouping by "ignore" -revisit grouping
 
