@@ -69,6 +69,7 @@ def run_all(data, n_sets, absolute, categorical, continuous, i):
             sign = True
             print(feat, " is too close to significance, run:", i)
 
+
     #run again if sets are not different enough (max. 20 times)
     if sign and i < 20:
         ind = i + 1
@@ -116,26 +117,28 @@ def prepare_data(data, absolute, continuous, categorical):
     data = data.drop(data.columns[[0]], axis=1)
     #data = data.drop(columns=absolute) #only nec if not grouped first
    
-    #split by "absolute" feature and remove absolute features from clustering
-    grouped = data.groupby(absolute)
 
     data_transformed = []
 
-    for name, group in grouped:
-        # drop absolute columns from further analysis
-        data_x = group.drop(columns=absolute)
-        # dummy-code categorical
+    #split by "absolute" feature and remove absolute features from clustering
+    if len(absolute) > 0:
+        grouped = data.groupby(absolute)
+       
+        for name, group in grouped:
+            # drop absolute columns from further analysis
+            data_x = group.drop(columns=absolute)
+            # dummy-code categorical
 
-        # transform data for fair comp continuous/categorical
+            # transform data for fair comp continuous/categorical
+            mms = MinMaxScaler()
+            data_x[continuous] = mms.fit_transform(data_x[continuous])
+
+            data_transformed.append(data_x)
+    
+    else:
         mms = MinMaxScaler()
-        data_x[continuous] = mms.fit_transform(data_x[continuous])
-
-        data_transformed.append(data_x)
-
-    ##only necessary if not grouped by absolute feature
-    #mms = MinMaxScaler()
-    #data[continuous] = mms.fit_transform(data[continuous])
-    #data_transformed.append(data)
+        data[continuous] = mms.fit_transform(data[continuous])
+        data_transformed.append(data)
 
     return data_transformed
 
