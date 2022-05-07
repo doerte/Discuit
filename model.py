@@ -189,20 +189,45 @@ def divide_in_sets(clusters, n_sets):
 
 
 def statistics(data, sets, features):
-    #statistics are still carried out over whole set, not over subparts accorind to absolute criterion
+    #statistics are still carried out over whole set, not over subparts according to absolute criterion
     stats = []
 
-    for feat in features:
-        kw_input = []
-        for s_set in sets:
-            sub_set = []
-            for item in s_set:
-                sub_set.append(data.loc[item, feat])
-            kw_input.append(sub_set)
+    if len(absolute_features) > 0:
+        print("stats need adjustment")
 
-        args = kw_input
-        stat, p = kruskal(*args)
-        stats.append([feat, stat, p])
+        #get options in absolute column
+        subsets = set(data[absolute_features[0]].tolist())
+        
+        #do stats per subset #still to be done
+        #for subset in subsets:
+        
+        for feat in features:
+            kw_input = []
+            for s_set in sets:
+                sub_set = []
+                for item in s_set:
+                    sub_set.append(data.loc[item, feat])
+                kw_input.append(sub_set)
+
+            args = kw_input
+            stat, p = kruskal(*args)
+            stats.append([feat, stat, p])
+    
+
+
+    else:
+        for feat in features:
+            kw_input = []
+            for s_set in sets:
+                sub_set = []
+                for item in s_set:
+                    sub_set.append(data.loc[item, feat])
+                kw_input.append(sub_set)
+
+            args = kw_input
+            stat, p = kruskal(*args)
+            stats.append([feat, stat, p])
+    
     return stats
 
 if no_sets > 1:
