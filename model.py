@@ -28,16 +28,16 @@ from sklearn.preprocessing import MinMaxScaler
 # must come from input. In GUI this should be selected in the GUI after opening a file!
 try:
     no_sets = int(sys.argv[2])
-except:
-    print('You failed to provide the number of required sets' \
-          'on the command line! Your input should look as follows: ' \
+except Warning:
+    print('You failed to provide the number of required sets  \n'
+          'on the command line! Your input should look as follows:\n'
           'model.py [path to csv file] [number of sets].')
     sys.exit(1)  # abort
 try:
     inputD = pd.read_csv(sys.argv[1])
-except:
-    print('You failed to provide your input file (.csv) ' \
-          'on the command line! Your input should look as follows: ' \
+except Warning:
+    print('You failed to provide your input file (.csv) \n'
+          'on the command line! Your input should look as follows: \n'
           'model.py [path to csv file] [number of sets].')
     sys.exit(1)  # abort
 
@@ -104,11 +104,12 @@ def run_all(data, n_sets, absolute, categorical, continuous, i):
             f = open("statistics.txt", "w")
             iterations = i + 1
             stat_string = (
-                        "Number of iterations: %s \n \nResults of Kruskal-Wallis Anovas for the following variables:\n" % iterations)
+                    "Number of iterations: %s \n \n"
+                    "Results of Kruskal-Wallis Anovas for the following variables:\n" % iterations)
 
             for test in stats:
                 stat_string += ("'" + stats[stats.index(test)][0] + "' (X2(%s) = %s, p = %s)" % (
-                no_sets - 1, round(stats[stats.index(test)][1], 3), round(stats[stats.index(test)][2], 3)) + ";\n")
+                    no_sets - 1, round(stats[stats.index(test)][1], 3), round(stats[stats.index(test)][2], 3)) + ";\n")
 
             f.write(stat_string)
             f.close()
@@ -214,9 +215,6 @@ def statistics(data, sets, features):
             args = kw_input
             stat, p = kruskal(*args)
             stats.append([feat, stat, p])
-
-
-
     else:
         for feat in features:
             kw_input = []
