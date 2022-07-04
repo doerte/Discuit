@@ -21,9 +21,9 @@ from scipy.stats import kruskal
 from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
+from kmodes.kprototypes import KPrototypes
 
 # toDo: ask which column should be evenly split (correctness?) Do that first
-# toDo: more than one categorical variable...
 
 # must come from input. In GUI this should be selected in the GUI after opening a file!
 try:
@@ -106,6 +106,7 @@ def run_all(data, n_sets, absolute, categorical, continuous, i):
             stat_string = (
                     "Number of iterations: %s \n \n"
                     "Results of Kruskal-Wallis Anovas for the following variables:\n" % iterations)
+                        #add reporting of numbers per category per set
 
             for test in stats:
                 stat_string += ("'" + stats[stats.index(test)][0] + "' (X2(%s) = %s, p = %s)" % (
@@ -146,25 +147,42 @@ def prepare_data(data, absolute, continuous, categorical):
 
 
 def clustering(transformed_data):
-    cl_range = range(2, len(transformed_data))
+    cl_range = range(2, 10) #changed to max 10 clusters to keep speed, check which max is appropriate
 
-    # k means determine k
+    # kmodes prototype for mixed numerical and categorical data
     largest_sil = (0, 0)
     clusters = []
 
+    categorical_features_idx = [1,3]
+    mark_array = transformed_data.values
+
     for k in cl_range:
-        km = KMeans(n_clusters=k, n_init=1, init='k-means++')
-        km.fit_predict(transformed_data)
-        sil = metrics.silhouette_score(transformed_data, km.labels_, sample_size=1000)
+        kproto = KPrototypes(n_clusters=k, max_iter=20)
+        kproto.fit_predict(mark_array, categorical=categorical_features_idx)
+        sil = metrics.silhouette_score(transformed_data, kproto.labels_,sample_size=1000)
         if sil > largest_sil[1]:
             largest_sil = (k, sil)
-    km_final = KMeans(n_clusters=largest_sil[0], init='k-means++', n_init=1)
+    kproto_final = KPrototypes(n_clusters=largest_sil[0], max_iter=20)
+    pred_cluster = kproto_final.fit_predict(mark_array, categorical=categorical_features_idx)
+    print(pred_cluster)
 
-    pred_cluster = km_final.fit_predict(transformed_data)
+    # k means determine k
+   # largest_sil = (0, 0)
+    #clusters = []
+
+
+    #for k in cl_range:
+     #   km = KMeans(n_clusters=k, n_init=1, init='k-means++')
+     #   km.fit_predict(transformed_data)
+    #    sil = metrics.silhouette_score(transformed_data, km.labels_, sample_size=1000)
+    #    if sil > largest_sil[1]:
+    #        largest_sil = (k, sil)
+   # km_final = KMeans(n_clusters=largest_sil[0], init='k-means++', n_init=1)
+
+   # pred_cluster = km_final.fit_predict(transformed_data)
 
     for k in range(0, largest_sil[0]):
         clusters.append([])
-
     for item in range(0, len(pred_cluster)):
         clusters[pred_cluster[item]].append(item)
 
