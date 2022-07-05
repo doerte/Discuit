@@ -23,7 +23,6 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from kmodes.kprototypes import KPrototypes
 
-# toDo: ask which column should be evenly split (correctness?) Do that first
 
 # must come from input. In GUI this should be selected in the GUI after opening a file!
 try:
@@ -43,7 +42,12 @@ except Warning:
 
 categorical_features = ["wordclass"]
 continuous_features = ["freq", "image"]
-absolute_features = ["correct"]
+absolute = input("Should there be an absolute split? y/n ")
+if absolute == "y":
+    absolute_features = [input("Which column should be used for an absolute split? ")]
+    print(absolute_features)
+else:
+    absolute_features = []
 
 
 def run_all(data, n_sets, absolute, categorical, continuous, i):
