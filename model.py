@@ -34,6 +34,7 @@ categorical_features = []
 continuous_features = []
 absolute_features =[]
 label = []
+disregard = []
 
 try:
     inputD = pd.read_csv(sys.argv[1])
@@ -55,9 +56,10 @@ except Exception:
 for column in inputD.columns:
     feature = None
     while feature is None:
-        input_value = input("Is '" + column + "' the label, a categorical, numerical or absolute (can be assigned once) variable? l/c/n/a ")
-        if input_value not in ('l', 'c', 'n', 'a'):
-            print("Please choose either l/c/n or a")
+        input_value = input("Is '" + column + "' the label (can only be assigned once), a categorical, numerical or absolute (can be assigned once) variable "
+                                               "or should it be disregarded in splitting? l/c/n/a/d ")
+        if input_value not in ('l', 'c', 'n', 'a', 'd'):
+            print("Please choose either l,c,n, a or d ")
         else:
             feature = input_value
             if feature == "c":
@@ -66,26 +68,32 @@ for column in inputD.columns:
                 continuous_features.append(column)
             elif feature == "a":
                 if len(absolute_features) > 0:
-                    print("You already have an absolute feature. Please start over.")
+                    print('You already have an absolute feature. Please start over.')
                     sys.exit(1)
                 else:
                     absolute_features.append(column)
             elif feature == "l":
-                label.append(column)
+                if len(label) > 0:
+                    print('You already have a label. Please start over.')
+                    sys.exit(1)
+                else:
+                    label.append(column)
+            elif feature == "d":
+                disregard.append(column)
 
-# Do something with those in label category
 
-def run_all(data, n_sets, absolute, categorical, continuous, label, i):
+
+def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i):
     sign = False
 
     # get data from file
-    dat = prepare_data(data, absolute, continuous, categorical, label)
+    dat = prepare_data(data, absolute, continuous, categorical, label, disregard)
 
     # form clusters
     clusters = []
 
     for df in dat:
-        clusters_df = clustering(df)
+        clusters_df = clustering(df, categorical)
         clusters.append(clusters_df)
 
     # divide in sets
@@ -145,9 +153,11 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, i):
             f.close()
 
 
-def prepare_data(data, absolute, continuous, categorical, label):
+def prepare_data(data, absolute, continuous, categorical, label, disregard):
     # remove label column
     data = data.drop([label[0]], axis=1)
+    data = data.drop(disregard, axis=1)
+    print(data)
     data_transformed = []
 
     # split by "absolute" feature and remove absolute features from clustering
@@ -181,7 +191,7 @@ def prepare_data(data, absolute, continuous, categorical, label):
     return data_transformed
 
 
-def clustering(transformed_data):
+def clustering(transformed_data, categorical_features):
     cl_range = range(2, 10) #changed to max 10 clusters to keep speed, check which max is appropriate
 
     # kmodes prototype for mixed numerical and categorical data
@@ -189,7 +199,7 @@ def clustering(transformed_data):
     clusters = []
 
     # this needs to be adjusted depending on input
-    categorical_features_idx = [1,3]
+    categorical_features_idx = [transformed_data.columns.get_loc(col) for col in categorical_features]
     mark_array = transformed_data.values
 
     for k in cl_range:
@@ -286,6 +296,6 @@ def statistics(data, sets, features):
 
 
 if no_sets > 1:
-    run_all(inputD, no_sets, absolute_features, categorical_features, continuous_features, label, 0)
+    run_all(inputD, no_sets, absolute_features, categorical_features, continuous_features, label, disregard, 0)
 else:
     print("Please use more than 1 set for this tool to be meaningful!")
