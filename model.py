@@ -29,6 +29,12 @@ except IndexError:
           'on the command line! Your input should look as follows:\n'
           'model.py [path to csv file] [number of sets].')
     sys.exit(1)  # abort
+
+categorical_features = []
+continuous_features = []
+absolute_features =[]
+label = []
+
 try:
     inputD = pd.read_csv(sys.argv[1])
 except FileNotFoundError:
@@ -46,23 +52,34 @@ except Exception:
           "'model.py [path to csv file] [number of sets].'")
     sys.exit(1)  # abort
 
+for column in inputD.columns:
+    feature = None
+    while feature is None:
+        input_value = input("Is '" + column + "' the label, a categorical, numerical or absolute (can be assigned once) variable? l/c/n/a ")
+        if input_value not in ('l', 'c', 'n', 'a'):
+            print("Please choose either l/c/n or a")
+        else:
+            feature = input_value
+            if feature == "c":
+                categorical_features.append(column)
+            elif feature == "n":
+                continuous_features.append(column)
+            elif feature == "a":
+                if len(absolute_features) > 0:
+                    print("You already have an absolute feature. Please start over.")
+                    sys.exit(1)
+                else:
+                    absolute_features.append(column)
+            elif feature == "l":
+                label.append(column)
 
-categorical_features = ["wordclass"]
-continuous_features = ["freq", "image"]
-absolute = input("Should there be an absolute split? y/n ")
-if absolute == "y":
-    absolute_features = [input("Which column should be used for an absolute split? ")]
-    print(absolute_features)
-else:
-    absolute_features = []
+# Do something with those in label category
 
-#maybe check here already whether columns exist...
-
-def run_all(data, n_sets, absolute, categorical, continuous, i):
+def run_all(data, n_sets, absolute, categorical, continuous, label, i):
     sign = False
 
     # get data from file
-    dat = prepare_data(data, absolute, continuous, categorical)
+    dat = prepare_data(data, absolute, continuous, categorical, label)
 
     # form clusters
     clusters = []
@@ -128,9 +145,9 @@ def run_all(data, n_sets, absolute, categorical, continuous, i):
             f.close()
 
 
-def prepare_data(data, absolute, continuous, categorical):
-    # remove first column (item name)
-    data = data.drop(data.columns[[0]], axis=1)
+def prepare_data(data, absolute, continuous, categorical, label):
+    # remove label column
+    data = data.drop([label[0]], axis=1)
     data_transformed = []
 
     # split by "absolute" feature and remove absolute features from clustering
@@ -138,7 +155,7 @@ def prepare_data(data, absolute, continuous, categorical):
         try:
             grouped = data.groupby(absolute)
         except KeyError:
-            print("You listed an absolute variable that cannot be found in the input file")
+            print('You listed an absolute variable that cannot be found in the input file')
             sys.exit(1)  # abort
 
         for name, group in grouped:
@@ -269,6 +286,6 @@ def statistics(data, sets, features):
 
 
 if no_sets > 1:
-    run_all(inputD, no_sets, absolute_features, categorical_features, continuous_features, 0)
+    run_all(inputD, no_sets, absolute_features, categorical_features, continuous_features, label, 0)
 else:
     print("Please use more than 1 set for this tool to be meaningful!")
