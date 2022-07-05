@@ -13,32 +13,39 @@
 # limitations under the License.
 
 
-# from typing import List, Any
-
 import pandas as pd
 import sys
 from scipy.stats import kruskal
 from sklearn import metrics
-from sklearn.cluster import KMeans
+#from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from kmodes.kprototypes import KPrototypes
-
 
 # must come from input. In GUI this should be selected in the GUI after opening a file!
 try:
     no_sets = int(sys.argv[2])
-except Warning:
+except IndexError:
     print('You failed to provide the number of required sets  \n'
           'on the command line! Your input should look as follows:\n'
           'model.py [path to csv file] [number of sets].')
     sys.exit(1)  # abort
 try:
     inputD = pd.read_csv(sys.argv[1])
-except Warning:
-    print('You failed to provide your input file (.csv) \n'
-          'on the command line! Your input should look as follows: \n'
-          'model.py [path to csv file] [number of sets].')
+except FileNotFoundError:
+    print("File not found.")
     sys.exit(1)  # abort
+except pd.errors.EmptyDataError:
+    print("No data")
+    sys.exit(1)  # abort
+except pd.errors.ParserError:
+    print("Parse error")
+    sys.exit(1)  # abort
+except Exception:
+    print("Something else went wrong. \n "
+          "Make sure your input looks as follows: \n"
+          "'model.py [path to csv file] [number of sets].'")
+    sys.exit(1)  # abort
+
 
 categorical_features = ["wordclass"]
 continuous_features = ["freq", "image"]
@@ -49,6 +56,7 @@ if absolute == "y":
 else:
     absolute_features = []
 
+#maybe check here already whether columns exist...
 
 def run_all(data, n_sets, absolute, categorical, continuous, i):
     sign = False
@@ -123,13 +131,15 @@ def run_all(data, n_sets, absolute, categorical, continuous, i):
 def prepare_data(data, absolute, continuous, categorical):
     # remove first column (item name)
     data = data.drop(data.columns[[0]], axis=1)
-    # data = data.drop(columns=absolute) #only nec if not grouped first
-
     data_transformed = []
 
     # split by "absolute" feature and remove absolute features from clustering
     if len(absolute) > 0:
-        grouped = data.groupby(absolute)
+        try:
+            grouped = data.groupby(absolute)
+        except KeyError:
+            print("You listed an absolute variable that cannot be found in the input file")
+            sys.exit(1)  # abort
 
         for name, group in grouped:
             # drop absolute columns from further analysis
@@ -138,7 +148,11 @@ def prepare_data(data, absolute, continuous, categorical):
 
             # transform data for fair comp continuous/categorical
             mms = MinMaxScaler()
-            data_x[continuous] = mms.fit_transform(data_x[continuous])
+            try:
+                data_x[continuous] = mms.fit_transform(data_x[continuous])
+            except KeyError:
+                print("You listed (a) numerical variable/s that cannot be found in the input file")
+                sys.exit(1)  # abort
 
             data_transformed.append(data_x)
 
@@ -157,6 +171,7 @@ def clustering(transformed_data):
     largest_sil = (0, 0)
     clusters = []
 
+    # this needs to be adjusted depending on input
     categorical_features_idx = [1,3]
     mark_array = transformed_data.values
 
