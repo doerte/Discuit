@@ -20,22 +20,18 @@ from sklearn import metrics
 #from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from kmodes.kprototypes import KPrototypes
+import argparse
+import pathlib
 
-# must come from input. In GUI this should be selected in the GUI after opening a file!
-try:
-    no_sets = int(sys.argv[2])
-except IndexError:
-    print('You failed to provide the number of required sets  \n'
-          'on the command line! Your input should look as follows:\n'
-          'model.py [path to csv file] [number of sets].')
-    sys.exit(1)  # abort
+# check whether path and number of set arguments were provided
+parser = argparse.ArgumentParser()
+parser.add_argument('datapath', type=pathlib.Path,  help='path to input data file (csv)')
+parser.add_argument('sets', type=int, help='provide number of desired sets')
+args = parser.parse_args()
 
-categorical_features = []
-continuous_features = []
-absolute_features =[]
-label = []
-disregard = []
+no_sets = int(sys.argv[2])
 
+# read file and check if it's suitable
 try:
     inputD = pd.read_csv(sys.argv[1])
 except FileNotFoundError:
@@ -52,6 +48,13 @@ except Exception:
           "Make sure your input looks as follows: \n"
           "'model.py [path to csv file] [number of sets].'")
     sys.exit(1)  # abort
+
+# The following info must come from input. In GUI this should be selected in the GUI after opening a file!
+categorical_features = []
+continuous_features = []
+absolute_features =[]
+label = []
+disregard = []
 
 for column in inputD.columns:
     feature = None
