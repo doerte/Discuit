@@ -17,7 +17,6 @@ import pandas as pd
 import sys
 from scipy.stats import kruskal
 from sklearn import metrics
-#from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from kmodes.kprototypes import KPrototypes
 import argparse
@@ -229,7 +228,6 @@ def clustering(transformed_data, categorical_features):
         final_clusters.append(cluster_new)
 
     return final_clusters
-
 
 def divide_in_sets(clusters, n_sets):
     sets = []
