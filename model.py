@@ -215,21 +215,6 @@ def clustering(transformed_data, categorical_features):
     pred_cluster = kproto_final.fit_predict(mark_array, categorical=categorical_features_idx)
     print(pred_cluster)
 
-    # k means determine k
-   # largest_sil = (0, 0)
-    #clusters = []
-
-
-    #for k in cl_range:
-     #   km = KMeans(n_clusters=k, n_init=1, init='k-means++')
-     #   km.fit_predict(transformed_data)
-    #    sil = metrics.silhouette_score(transformed_data, km.labels_, sample_size=1000)
-    #    if sil > largest_sil[1]:
-    #        largest_sil = (k, sil)
-   # km_final = KMeans(n_clusters=largest_sil[0], init='k-means++', n_init=1)
-
-   # pred_cluster = km_final.fit_predict(transformed_data)
-
     for k in range(0, largest_sil[0]):
         clusters.append([])
     for item in range(0, len(pred_cluster)):
