@@ -17,12 +17,14 @@ import pandas as pd
 import sys
 from scipy.stats import kruskal
 from sklearn import metrics
+from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from kmodes.kprototypes import KPrototypes
+from kmodes.kmodes import KModes
 import argparse
 import pathlib
 
-# check whether path and number of set arguments were provided
+# check whether path and number of sets arguments were provided
 parser = argparse.ArgumentParser()
 parser.add_argument('datapath', type=pathlib.Path,  help='path to input data file (csv)')
 parser.add_argument('sets', type=int, help='provide number of desired sets')
@@ -48,20 +50,21 @@ except Exception:
           "'model.py [path to csv file] [number of sets].'")
     sys.exit(1)  # abort
 
-# The following info must come from input. In GUI this should be selected in the GUI after opening a file!
+# The following info must come from user. In GUI this should be selected in the GUI after opening a file!
 categorical_features = []
 continuous_features = []
 absolute_features =[]
 label = []
 disregard = []
 
+# Check all the columns and ask about status. Label and absolute can only be chosen once.
 for column in inputD.columns:
     feature = None
     while feature is None:
         input_value = input("Is '" + column + "' the label (can only be assigned once), a categorical, numerical or absolute (can be assigned once) variable "
                                                "or should it be disregarded in splitting? l/c/n/a/d ")
         if input_value not in ('l', 'c', 'n', 'a', 'd'):
-            print("Please choose either l,c,n, a or d ")
+            print("Please choose either l, c, n, a or d ")
         else:
             feature = input_value
             if feature == "c":
@@ -70,20 +73,18 @@ for column in inputD.columns:
                 continuous_features.append(column)
             elif feature == "a":
                 if len(absolute_features) > 0:
-                    print('You already have an absolute feature. Please start over.')
-                    sys.exit(1)
+                    print('You already have an absolute feature. Please choose something else.')
+                    feature = None
                 else:
                     absolute_features.append(column)
             elif feature == "l":
                 if len(label) > 0:
-                    print('You already have a label. Please start over.')
-                    sys.exit(1)
+                    print('You already have a label. Please choose something else.')
+                    feature = None
                 else:
                     label.append(column)
             elif feature == "d":
                 disregard.append(column)
-
-
 
 def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i):
     sign = False
@@ -95,14 +96,16 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i
     clusters = []
 
     for df in dat:
-        clusters_df = clustering(df, categorical)
+        clusters_df = clustering(df, categorical, continuous)
         clusters.append(clusters_df)
 
     # divide in sets
     sets = divide_in_sets(clusters, n_sets)
 
     # compare sets to each other statistically
-    stats = statistics(data, sets, continuous)
+    stats = statistics(data, sets, continuous, absolute)
+    ## werkt tot hier, hierna ontstaat probleem, hier door met debuggen!
+
     for feat in stats:
         if feat[2] < 0.2:
             sign = True
@@ -156,10 +159,11 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i
 
 
 def prepare_data(data, absolute, continuous, categorical, label, disregard):
-    # remove label column
-    data = data.drop([label[0]], axis=1)
-    data = data.drop(disregard, axis=1)
-    print(data)
+    # remove label column & disregarded columns
+    if len(label) != 0:
+        data = data.drop([label[0]], axis=1)
+    if len(disregard) != 0:
+        data = data.drop(disregard, axis=1)
     data_transformed = []
 
     # split by "absolute" feature and remove absolute features from clustering
@@ -177,23 +181,26 @@ def prepare_data(data, absolute, continuous, categorical, label, disregard):
 
             # transform data for fair comp continuous/categorical
             mms = MinMaxScaler()
-            try:
-                data_x[continuous] = mms.fit_transform(data_x[continuous])
-            except KeyError:
-                print("You listed (a) numerical variable/s that cannot be found in the input file")
-                sys.exit(1)  # abort
+
+            if len(continuous) != 0:
+                try:
+                    data_x[continuous] = mms.fit_transform(data_x[continuous])
+                except KeyError:
+                    print("You listed (a) numerical variable/s that cannot be found in the input file")
+                    sys.exit(1)  # abort
 
             data_transformed.append(data_x)
 
     else:
-        mms = MinMaxScaler()
-        data[continuous] = mms.fit_transform(data[continuous])
+        if len(continuous) != 0:
+            mms = MinMaxScaler()
+            data[continuous] = mms.fit_transform(data[continuous])
         data_transformed.append(data)
 
     return data_transformed
 
 
-def clustering(transformed_data, categorical_features):
+def clustering(transformed_data, categorical_features, continuous_features):
     cl_range = range(2, 10) #changed to max 10 clusters to keep speed, check which max is appropriate
 
     # kmodes prototype for mixed numerical and categorical data
@@ -204,15 +211,38 @@ def clustering(transformed_data, categorical_features):
     categorical_features_idx = [transformed_data.columns.get_loc(col) for col in categorical_features]
     mark_array = transformed_data.values
 
-    for k in cl_range:
-        kproto = KPrototypes(n_clusters=k, max_iter=20)
-        kproto.fit_predict(mark_array, categorical=categorical_features_idx)
-        sil = metrics.silhouette_score(transformed_data, kproto.labels_,sample_size=1000)
-        if sil > largest_sil[1]:
-            largest_sil = (k, sil)
-    kproto_final = KPrototypes(n_clusters=largest_sil[0], max_iter=20)
-    pred_cluster = kproto_final.fit_predict(mark_array, categorical=categorical_features_idx)
-    print(pred_cluster)
+    # choose algorithm depending on input
+    if (len(categorical_features) != 0) and (len(continuous_features) != 0):
+        print("both features")
+        for k in cl_range:
+            kproto = KPrototypes(n_clusters=k, max_iter=20)
+            kproto.fit_predict(mark_array, categorical=categorical_features_idx)
+            sil = metrics.silhouette_score(transformed_data, kproto.labels_, sample_size=1000)
+            if sil > largest_sil[1]:
+                largest_sil = (k, sil)
+        kproto_final = KPrototypes(n_clusters=largest_sil[0], max_iter=20)
+        pred_cluster = kproto_final.fit_predict(mark_array, categorical=categorical_features_idx)
+    elif (len(categorical_features) != 0) and (len(continuous_features) == 0):
+        print("only cat features")
+        for k in cl_range:
+            kmode = KModes(n_clusters=k, init="random", n_init=5)
+            kmode.fit_predict(transformed_data)
+            sil = metrics.silhouette_score(transformed_data, kmode.labels_, sample_size=1000)
+            if sil > largest_sil[1]:
+                largest_sil = (k, sil)
+        kmode_final = KModes(n_clusters=largest_sil[0],init="random", n_init=5)
+        pred_cluster = kmode_final.fit_predict(transformed_data)
+
+    elif (len(categorical_features) == 0) and (len(continuous_features) != 0):
+        print("only num features")
+        for k in cl_range:
+            km = KMeans(n_clusters=k, n_init=1, init='k-means++')
+            km.fit_predict(transformed_data)
+            sil = metrics.silhouette_score(transformed_data, km.labels_, sample_size=1000)
+            if sil > largest_sil[1]:
+                largest_sil = (k, sil)
+        km_final = KMeans(n_clusters=largest_sil[0], init='k-means++', n_init=1)
+        pred_cluster = km_final.fit_predict(transformed_data)
 
     for k in range(0, largest_sil[0]):
         clusters.append([])
@@ -241,10 +271,10 @@ def divide_in_sets(clusters, n_sets):
     return sets
 
 
-def statistics(data, sets, features):
+def statistics(data, sets, features, absolute_features):
     # statistics are still carried out over whole set, not over sub-parts according to absolute criterion
+    # maybe do statistics for categorical variables as well?
     stats = []
-
     if len(absolute_features) > 0:
         print("stats need adjustment")
 
@@ -277,7 +307,6 @@ def statistics(data, sets, features):
             args = kw_input
             stat, p = kruskal(*args)
             stats.append([feat, stat, p])
-
     return stats
 
 
