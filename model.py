@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from typing import List
 
 import pandas as pd
 import sys
@@ -33,6 +33,7 @@ args = parser.parse_args()
 no_sets = int(sys.argv[2])
 
 # read file and check if it's suitable
+# noinspection PyBroadException
 try:
     inputD = pd.read_csv(sys.argv[1])
 except FileNotFoundError:
@@ -53,7 +54,7 @@ except Exception:
 # The following info must come from user. In GUI this should be selected in the GUI after opening a file!
 categorical_features = []
 continuous_features = []
-absolute_features =[]
+absolute_features = []
 label = []
 disregard = []
 
@@ -61,8 +62,9 @@ disregard = []
 for column in inputD.columns:
     feature = None
     while feature is None:
-        input_value = input("Is '" + column + "' the label (can only be assigned once), a categorical, numerical or absolute (can be assigned once) variable "
-                                               "or should it be disregarded in splitting? l/c/n/a/d ")
+        input_value = input("Is '" + column + "' the label (can only be assigned once), a categorical, "
+                                              "numerical or absolute (can be assigned once) variable "
+                                              "or should it be disregarded in splitting? l/c/n/a/d ")
         if input_value not in ('l', 'c', 'n', 'a', 'd'):
             print("Please choose either l, c, n, a or d ")
         else:
@@ -86,6 +88,7 @@ for column in inputD.columns:
             elif feature == "d":
                 disregard.append(column)
 
+
 def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i):
     sign = False
 
@@ -104,7 +107,6 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i
 
     # compare sets to each other statistically
     stats = statistics(data, sets, continuous, absolute)
-    ## werkt tot hier, hierna ontstaat probleem, hier door met debuggen!
 
     for feat in stats:
         if feat[2] < 0.2:
@@ -114,7 +116,7 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i
     # run again if sets are not different enough (max. 20 times)
     if sign and i < 20:
         ind = i + 1
-        run_all(data, n_sets, absolute, categorical, continuous, ind)
+        run_all(data, n_sets, absolute, categorical, continuous, label, disregard, ind)
 
     # give up trying after 20 runs
     elif sign:
@@ -148,7 +150,7 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i
             stat_string = (
                     "Number of iterations: %s \n \n"
                     "Results of Kruskal-Wallis Anovas for the following variables:\n" % iterations)
-                        #add reporting of numbers per category per set
+            # add reporting of numbers per category per set
 
             for test in stats:
                 stat_string += ("'" + stats[stats.index(test)][0] + "' (X2(%s) = %s, p = %s)" % (
@@ -201,11 +203,10 @@ def prepare_data(data, absolute, continuous, categorical, label, disregard):
 
 
 def clustering(transformed_data, categorical_features, continuous_features):
-    cl_range = range(2, 10) #changed to max 10 clusters to keep speed, check which max is appropriate
+    cl_range = range(2, 10)  # changed to max 10 clusters to keep speed, check which max is appropriate
 
     # kmodes prototype for mixed numerical and categorical data
     largest_sil = (0, 0)
-    clusters = []
 
     # this needs to be adjusted depending on input
     categorical_features_idx = [transformed_data.columns.get_loc(col) for col in categorical_features]
@@ -230,10 +231,10 @@ def clustering(transformed_data, categorical_features, continuous_features):
             sil = metrics.silhouette_score(transformed_data, kmode.labels_, sample_size=1000)
             if sil > largest_sil[1]:
                 largest_sil = (k, sil)
-        kmode_final = KModes(n_clusters=largest_sil[0],init="random", n_init=5)
+        kmode_final = KModes(n_clusters=largest_sil[0], init="random", n_init=5)
         pred_cluster = kmode_final.fit_predict(transformed_data)
 
-    elif (len(categorical_features) == 0) and (len(continuous_features) != 0):
+    else:
         print("only num features")
         for k in cl_range:
             km = KMeans(n_clusters=k, n_init=1, init='k-means++')
@@ -244,8 +245,8 @@ def clustering(transformed_data, categorical_features, continuous_features):
         km_final = KMeans(n_clusters=largest_sil[0], init='k-means++', n_init=1)
         pred_cluster = km_final.fit_predict(transformed_data)
 
-    for k in range(0, largest_sil[0]):
-        clusters.append([])
+    clusters: List[List[int]] = [[] for _ in range(largest_sil[0])]
+
     for item in range(0, len(pred_cluster)):
         clusters[pred_cluster[item]].append(item)
 
@@ -258,6 +259,7 @@ def clustering(transformed_data, categorical_features, continuous_features):
         final_clusters.append(cluster_new)
 
     return final_clusters
+
 
 def divide_in_sets(clusters, n_sets):
     sets = []
