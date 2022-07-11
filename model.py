@@ -26,10 +26,12 @@ import pathlib
 
 # check whether path and number of sets arguments were provided
 parser = argparse.ArgumentParser()
-parser.add_argument('datapath', type=pathlib.Path,  help='path to input data file (csv)')
+parser.add_argument('datapath', type=pathlib.Path, help='path to input data file (csv)')
 parser.add_argument('sets', type=int, help='provide number of desired sets')
+parser.add_argument('--columns', nargs='*',
+                    choices=['l', 'c', 'n', 'a', 'd'], help='list column types',
+                    default=None)
 args = parser.parse_args()
-
 no_sets = int(sys.argv[2])
 
 # read file and check if it's suitable
@@ -59,41 +61,58 @@ label = []
 disregard = []
 
 # Check all the columns and ask about status. Label and absolute can only be chosen once.
-for column in inputD.columns:
-    feature = None
-    while feature is None:
-        input_value = input("Is '" + column + "' the label (can only be assigned once), a categorical, "
-                                              "numerical or absolute (can be assigned once) variable "
-                                              "or should it be disregarded in splitting? l/c/n/a/d ")
-        if input_value not in ('l', 'c', 'n', 'a', 'd'):
-            print("Please choose either l, c, n, a or d ")
-        else:
-            feature = input_value
-            if feature == "c":
-                categorical_features.append(column)
-            elif feature == "n":
-                continuous_features.append(column)
-            elif feature == "a":
-                if len(absolute_features) > 0:
-                    print('You already have an absolute feature. Please choose something else.')
-                    feature = None
-                else:
-                    absolute_features.append(column)
-            elif feature == "l":
-                if len(label) > 0:
-                    print('You already have a label. Please choose something else.')
-                    feature = None
-                else:
-                    label.append(column)
-            elif feature == "d":
-                disregard.append(column)
+
+if len(args.columns) != len(inputD.columns):
+    print("You didn't provide valid data type indications when running the program. Please specify them now")
+    for column in inputD.columns:
+        feature = None
+        while feature is None:
+            input_value = input("Is '" + column + "' the label (can only be assigned once), a categorical, "
+                                                  "numerical or absolute (can be assigned once) variable "
+                                                  "or should it be disregarded in splitting? l/c/n/a/d ")
+            if input_value not in ('l', 'c', 'n', 'a', 'd'):
+                print("Please choose either l, c, n, a or d ")
+            else:
+                feature = input_value
+                if feature == "c":
+                    categorical_features.append(column)
+                elif feature == "n":
+                    continuous_features.append(column)
+                elif feature == "a":
+                    if len(absolute_features) > 0:
+                        print('You already have an absolute feature. Please choose something else.')
+                        feature = None
+                    else:
+                        absolute_features.append(column)
+                elif feature == "l":
+                    if len(label) > 0:
+                        print('You already have a label. Please choose something else.')
+                        feature = None
+                    else:
+                        label.append(column)
+                elif feature == "d":
+                    disregard.append(column)
+
+else:
+    for column in inputD.columns:
+        feature = args.columns[inputD.columns.get_loc(column)]
+        if feature == "c":
+            categorical_features.append(column)
+        elif feature == "n":
+            continuous_features.append(column)
+        elif feature == "a":
+            absolute_features.append(column)
+        elif feature == "l":
+            label.append(column)
+        elif feature == "d":
+            disregard.append(column)
 
 
 def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i):
     sign = False
 
     # get data from file
-    dat = prepare_data(data, absolute, continuous, categorical, label, disregard)
+    dat = prepare_data(data, absolute, continuous, label, disregard)
 
     # form clusters
     clusters = []
@@ -160,7 +179,7 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i
             f.close()
 
 
-def prepare_data(data, absolute, continuous, categorical, label, disregard):
+def prepare_data(data, absolute, continuous, label, disregard):
     # remove label column & disregarded columns
     if len(label) != 0:
         data = data.drop([label[0]], axis=1)
@@ -276,39 +295,33 @@ def divide_in_sets(clusters, n_sets):
 def statistics(data, sets, features, absolute_features):
     # statistics are still carried out over whole set, not over sub-parts according to absolute criterion
     # maybe do statistics for categorical variables as well?
-    stats = []
+
     if len(absolute_features) > 0:
         print("stats need adjustment")
 
         # get options in absolute column
         subsets = set(data[absolute_features[0]].tolist())
-
+        print(subsets)
         # todo: do stats per subset
         # for subset in subsets:
+        stats = kwtest(features, sets, data)
 
-        for feat in features:
-            kw_input = []
-            for s_set in sets:
-                sub_set = []
-                for item in s_set:
-                    sub_set.append(data.loc[item, feat])
-                kw_input.append(sub_set)
-
-            args = kw_input
-            stat, p = kruskal(*args)
-            stats.append([feat, stat, p])
     else:
-        for feat in features:
-            kw_input = []
-            for s_set in sets:
-                sub_set = []
-                for item in s_set:
-                    sub_set.append(data.loc[item, feat])
-                kw_input.append(sub_set)
+        stats = kwtest(features, sets, data)
+    return stats
 
-            args = kw_input
-            stat, p = kruskal(*args)
-            stats.append([feat, stat, p])
+
+def kwtest(features, sets, data):
+    stats = []
+    for feat in features:
+        kw_input = []
+        for s_set in sets:
+            sub_set = []
+            for item in s_set:
+                sub_set.append(data.loc[item, feat])
+            kw_input.append(sub_set)
+        stat, p = kruskal(*kw_input)
+        stats.append([feat, stat, p])
     return stats
 
 
