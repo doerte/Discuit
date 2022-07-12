@@ -24,12 +24,20 @@ from kmodes.kmodes import KModes
 import argparse
 import pathlib
 
+# Maybe reconsider set-up for absolute feature. If absolute is present, run everything ("run all") twice instead of
+# working around things later. Only thing to consider: how to merge datafiles in the end before making output-files?
+# That part needs to happen in an outer procedure
+
 # check whether path and number of sets arguments were provided
 parser = argparse.ArgumentParser()
 parser.add_argument('datapath', type=pathlib.Path, help='path to input data file (csv)')
 parser.add_argument('sets', type=int, help='provide number of desired sets')
 parser.add_argument('--columns', nargs='*',
-                    choices=['l', 'c', 'n', 'a', 'd'], help='list column types',
+                    choices=['l', 'c', 'n', 'a', 'd'], help='provide the data type for each column (l(abel)/c(ategorical)'
+                                                            '/n(umerical)/a(bsolute)/d(isregard).'
+                                                            'The number of labels needs to match the number of columns'
+                                                            ' in your input file. If this is not the case you can provide '
+                                                            'them later on and your input will be ignored.',
                     default=None)
 args = parser.parse_args()
 no_sets = int(sys.argv[2])
@@ -61,7 +69,6 @@ label = []
 disregard = []
 
 # Check all the columns and ask about status. Label and absolute can only be chosen once.
-
 if len(args.columns) != len(inputD.columns):
     print("You didn't provide valid data type indications when running the program. Please specify them now")
     for column in inputD.columns:
@@ -113,7 +120,6 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i
 
     # get data from file
     dat = prepare_data(data, absolute, continuous, label, disregard)
-
     # form clusters
     clusters = []
 
@@ -127,6 +133,8 @@ def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i
     # compare sets to each other statistically
     stats = statistics(data, sets, continuous, absolute)
 
+    # this doesn't work yet for split statistics, as the output of stats is [[[0,1,2],[0,1,2]],[[0,1,2],[0,1,2]]]
+    # instead of [[0,1,2],[0,1,2]]
     for feat in stats:
         if feat[2] < 0.2:
             sign = True
@@ -284,7 +292,6 @@ def divide_in_sets(clusters, n_sets):
     sets = []
     for single_set in range(0, n_sets):
         sets.append([])
-
     for cl in clusters:
         for cluster in cl:
             for item in cluster:
@@ -298,13 +305,20 @@ def statistics(data, sets, features, absolute_features):
 
     if len(absolute_features) > 0:
         print("stats need adjustment")
-
-        # get options in absolute column
-        subsets = set(data[absolute_features[0]].tolist())
-        print(subsets)
-        # todo: do stats per subset
-        # for subset in subsets:
-        stats = kwtest(features, sets, data)
+        stats = kwtest(features, sets, data) #remove once other stats are inplace
+        ## implementation for absolute splitting below, but still raises problem in data output later on,
+        ## maybe rewrite (see top of file)
+        ## get options in absolute column
+        # stats = []
+        #subsets = set(data[absolute_features[0]].tolist())
+        ## todo: do stats per subset
+        #for subset in subsets:
+        #    subset1 = data[data[absolute_features[0]] == subset]
+        #    working_set = [list(filter(lambda x: x in list(subset1.index.values), sublist)) for sublist in sets]
+        #    print(features,working_set, subset1)
+        #    stats1 = kwtest(features, working_set, subset1)
+        #    stats.append(stats1)
+        #print(stats)
 
     else:
         stats = kwtest(features, sets, data)
