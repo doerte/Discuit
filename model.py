@@ -37,7 +37,8 @@ parser.add_argument('--columns', nargs='*',
                                                             '/n(umerical)/a(bsolute)/d(isregard).'
                                                             'The number of labels needs to match the number of columns'
                                                             ' in your input file. If this is not the case you can provide '
-                                                            'them later on and your input will be ignored.',
+                                                            'them later on and your input will be ignored.'
+                                                            '"Label" and "absolute" can only be specified once.',
                     default=None)
 args = parser.parse_args()
 no_sets = int(sys.argv[2])
@@ -99,7 +100,7 @@ if len(args.columns) != len(inputD.columns):
                         label.append(column)
                 elif feature == "d":
                     disregard.append(column)
-
+# if specified when running program, take them from there
 else:
     for column in inputD.columns:
         feature = args.columns[inputD.columns.get_loc(column)]
@@ -113,7 +114,12 @@ else:
             label.append(column)
         elif feature == "d":
             disregard.append(column)
-
+    if len(label) > 1:
+        print("More than one 'label' was specified. Please use -h to get help in providing suitable arguments")
+        sys.exit(1)  # abort
+    if len(absolute_features) > 1:
+        print("More than one 'absolute' variable was specified. Please use -h to get help in providing suitable arguments")
+        sys.exit(1)  # abort
 
 def run_all(data, n_sets, absolute, categorical, continuous, label, disregard, i):
     sign = False
