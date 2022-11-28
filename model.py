@@ -15,7 +15,7 @@ from typing import List
 
 import pandas as pd
 import sys
-from scipy.stats import kruskal
+from scipy.stats import kruskal, fisher_exact
 from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
@@ -27,8 +27,10 @@ import pathlib
 # Maybe reconsider set-up for absolute feature. If absolute is present, run everything ("run all") twice instead of
 # working around things later. Only thing to consider: how to merge datafiles in the end before making output-files?
 # That part needs to happen in an outer procedure
-#This seems to be working now. TODO: check whether absolute feature is binary! Or come up with something to handle non-binary
+#This seems to be working now.
+#TODO: check whether absolute feature is binary! Or come up with something to handle non-binary
 #TODO: write statistics to file
+#TODO: make sure each set has same number of items (with second absolute thing start backwards?)
 
 #check whether path and number of sets arguments were provided
 parser = argparse.ArgumentParser()
@@ -135,62 +137,6 @@ def run_all(data, n_sets, categorical, continuous):
     # divide in sets
     sets = divide_in_sets(clusters, n_sets)
     return sets
-    # compare sets to each other statistically
-    # stats = statistics(data, sets, continuous, absolute)
-    #
-    # # this doesn't work yet for split statistics, as the output of stats is [[[0,1,2],[0,1,2]],[[0,1,2],[0,1,2]]]
-    # # instead of [[0,1,2],[0,1,2]]
-    # for feat in stats:
-    #     if feat[2] < 0.2:
-    #         sign = True
-    #         print(feat, " is too close to significance, run:", i)
-    #
-    # # run again if sets are not different enough (max. 20 times)
-    # if sign and i < 20:
-    #     ind = i + 1
-    #     run_all(data, n_sets, absolute, categorical, continuous, label, disregard, ind)
-    #
-    # # give up trying after 20 runs
-    # elif sign:
-    #     print("Ran 20 different models, none achieves a significance value of p>.2 on all features.")
-    #     print("sets: ", sets)
-    #     print(stats)
-    #
-    # # report outcome of successful run
-    # else:
-    #     # create .csv files including set allocation
-    #     # make list with set name per input item
-    #     set_numbers = []
-    #     for item in inputD.index:
-    #         for j in range(len(sets)):
-    #             if item in sets[j]:
-    #                 set_numbers.append(j + 1)
-    #
-    #     # add new column
-    #     inputD['set_number'] = set_numbers
-    #
-    #     # output file
-    #     inputD.to_csv("output.csv", index=False)
-    #
-    #     print("sets: ", sets)
-        # print(stats)
-        #
-        # # save statistics to file if there was more than 1 set
-        # if no_sets > 1:
-        #     f = open("statistics.txt", "w")
-        #     iterations = i + 1
-        #     stat_string = (
-        #             "Number of iterations: %s \n \n"
-        #             "Results of Kruskal-Wallis Anovas for the following variables:\n" % iterations)
-        #     # add reporting of numbers per category per set
-        #
-        #     for test in stats:
-        #         stat_string += ("'" + stats[stats.index(test)][0] + "' (X2(%s) = %s, p = %s)" % (
-        #             no_sets - 1, round(stats[stats.index(test)][1], 3), round(stats[stats.index(test)][2], 3)) + ";\n")
-        #
-        #     f.write(stat_string)
-        #     f.close()
-
 
 def prepare_data(data, continuous, label, disregard):
     # remove label column & disregarded columns
@@ -273,45 +219,6 @@ def divide_in_sets(clusters, n_sets):
             sets[sets.index(min(sets, key=len))].append(item)
     return sets
 
-
-def statistics(data, sets, features, absolute_features):
-    # statistics are still carried out over whole set, not over sub-parts according to absolute criterion
-    # maybe do statistics for categorical variables as well?
-
-    if len(absolute_features) > 0:
-        print("stats need adjustment")
-        stats = kwtest(features, sets, data) #remove once other stats are inplace
-        ## implementation for absolute splitting below, but still raises problem in data output later on,
-        ## maybe rewrite (see top of file)
-        ## get options in absolute column
-        # stats = []
-        #subsets = set(data[absolute_features[0]].tolist())
-        ## todo: do stats per subset
-        #for subset in subsets:
-        #    subset1 = data[data[absolute_features[0]] == subset]
-        #    working_set = [list(filter(lambda x: x in list(subset1.index.values), sublist)) for sublist in sets]
-        #    print(features,working_set, subset1)
-        #    stats1 = kwtest(features, working_set, subset1)
-        #    stats.append(stats1)
-        #print(stats)
-
-    else:
-        stats = kwtest(features, sets, data)
-    return stats
-
-def kwtest(features, sets, data):
-    stats = []
-    for feat in features:
-        kw_input = []
-        for s_set in sets:
-            sub_set = []
-            for item in s_set:
-                sub_set.append(data.loc[item, feat])
-            kw_input.append(sub_set)
-        stat, p = kruskal(*kw_input)
-        stats.append([feat, stat, p])
-    return stats
-
 def split(absolute, data):
     try:
         grouped = data.groupby(absolute)
@@ -328,7 +235,7 @@ def split(absolute, data):
     return data_splitted
 
 ### actually run the program ###
-sets = []
+output_sets = []
 stats = []
 abs_labels = []
 
@@ -347,30 +254,19 @@ else:
     print("Please use more than 1 set for this tool to be meaningful!")
     sys.exit(1) # abort
 
-
-# stuff to be done per subset for each subset of input
-
-k = 0
+#for each part of the absolute splitting run all including statistics
 for data in datasets:
-    set = run_all(data, no_sets, categorical_features, continuous_features)
-    sets.append(set)
-    # do statistics continuous variables
-    statsSet = kwtest(continuous_features,set,data)
-    statsSet.append(abs_labels[k])
-    k = k+1
-    stats.append(statsSet)
-    # do statistics categorical variables
-print(stats)
-# merge outcome into one file and report
+    #clustering + dividing in sets
+    sets = run_all(data, no_sets, categorical_features, continuous_features)
+    #add to list of sets for later reintegration to overall outcome sets
+    output_sets.append(sets)
 
+# merge outcome into one file and report
 final_sets = []
 for k in range(no_sets):
-    joined_set = sets[0][k] + sets[1][k]
+    joined_set = output_sets[0][k] + output_sets[1][k]
     final_sets.append(joined_set)
-print(final_sets)
 
-# create .csv files including set allocation
-        # make list with set name per input item
 set_numbers = []
 for item in inputD.index:
     for j in range(len(final_sets)):
@@ -384,4 +280,140 @@ inputD['set_number'] = set_numbers
 inputD.to_csv("output.csv", index=False)
 
 
-# do statistics for complete thing
+# # do statistics for complete thing
+# # do statistics continuous variables (are they different between sets for this part of absolute split)
+# statsSet = kwtest(continuous_features, sets, data)
+# # add info on which part of abs split this concerns
+# k = 0
+# statsSet.append(abs_labels[k])
+# k = k + 1
+#
+# # do statistics categorical variables
+# # count instances of each categFeat and compare between sets
+# # Maybe move to actual stats method later on, input required
+# # categorical_features, data, sets
+#
+# # for feat in categorical_features:
+# #    instances = data[feat].tolist()
+# #    uniq_instances = {*instances}
+# #    for instance in uniq_instances:
+# #        count = data.count(instance)
+#
+#
+# fisher_out = fisher(categorical_features, sets, data)
+#
+# # append outcome cat variables to statsSet
+#
+# # note down stats outcomes for later report
+# stats.append(statsSet)
+#
+# def statistics(data, sets, features, absolute_features):
+#     # statistics are still carried out over whole set, not over sub-parts according to absolute criterion
+#     # maybe do statistics for categorical variables as well?
+#
+#     if len(absolute_features) > 0:
+#         print("stats need adjustment")
+#         stats = kwtest(features, sets, data) #remove once other stats are inplace
+#         ## implementation for absolute splitting below, but still raises problem in data output later on,
+#         ## maybe rewrite (see top of file)
+#         ## get options in absolute column
+#         # stats = []
+#         #subsets = set(data[absolute_features[0]].tolist())
+#         ## TODO: do stats per subset
+#         #for subset in subsets:
+#         #    subset1 = data[data[absolute_features[0]] == subset]
+#         #    working_set = [list(filter(lambda x: x in list(subset1.index.values), sublist)) for sublist in sets]
+#         #    print(features,working_set, subset1)
+#         #    stats1 = kwtest(features, working_set, subset1)
+#         #    stats.append(stats1)
+#         #print(stats)
+#
+#     else:
+#         stats = kwtest(features, sets, data)
+#     return stats
+#
+# def kwtest(features, sets, data):
+#     stats = []
+#     for feat in features:
+#         kw_input = []
+#         for s_set in sets:
+#             sub_set = []
+#             for item in s_set:
+#                 sub_set.append(data.loc[item, feat])
+#             kw_input.append(sub_set)
+#         stat, p = kruskal(*kw_input)
+#         stats.append([feat, stat, p])
+#     return stats
+#
+# def fisher(features, sets, data):
+#     stats = []
+#
+#     for feat in features:
+#         for s_set in sets:
+#             for item in s_set:
+#                 print(feat)
+#                 print(item, data.loc[item, feat])
+#         #print(chi_input)
+#
+#
+#
+#     #data = [[10, 4],
+#     #        [4, 9]]
+    #print(fisher_exact(data))
+
+
+# compare sets to each other statistically
+# stats = statistics(data, sets, continuous, absolute)
+#
+# # this doesn't work yet for split statistics, as the output of stats is [[[0,1,2],[0,1,2]],[[0,1,2],[0,1,2]]]
+# # instead of [[0,1,2],[0,1,2]]
+# for feat in stats:
+#     if feat[2] < 0.2:
+#         sign = True
+#         print(feat, " is too close to significance, run:", i)
+#
+# # run again if sets are not different enough (max. 20 times)
+# if sign and i < 20:
+#     ind = i + 1
+#     run_all(data, n_sets, absolute, categorical, continuous, label, disregard, ind)
+#
+# # give up trying after 20 runs
+# elif sign:
+#     print("Ran 20 different models, none achieves a significance value of p>.2 on all features.")
+#     print("sets: ", sets)
+#     print(stats)
+#
+# # report outcome of successful run
+# else:
+#     # create .csv files including set allocation
+#     # make list with set name per input item
+#     set_numbers = []
+#     for item in inputD.index:
+#         for j in range(len(sets)):
+#             if item in sets[j]:
+#                 set_numbers.append(j + 1)
+#
+#     # add new column
+#     inputD['set_number'] = set_numbers
+#
+#     # output file
+#     inputD.to_csv("output.csv", index=False)
+#
+#     print("sets: ", sets)
+# print(stats)
+#
+# # save statistics to file if there was more than 1 set
+# if no_sets > 1:
+#     f = open("statistics.txt", "w")
+#     iterations = i + 1
+#     stat_string = (
+#             "Number of iterations: %s \n \n"
+#             "Results of Kruskal-Wallis Anovas for the following variables:\n" % iterations)
+#     # add reporting of numbers per category per set
+#
+#     for test in stats:
+#         stat_string += ("'" + stats[stats.index(test)][0] + "' (X2(%s) = %s, p = %s)" % (
+#             no_sets - 1, round(stats[stats.index(test)][1], 3), round(stats[stats.index(test)][2], 3)) + ";\n")
+#
+#     f.write(stat_string)
+#     f.close()
