@@ -365,8 +365,9 @@ def run_all(i):
 
 
 ### actually run the program ###
-# track number of loops
+# initiate loop-tracking
 i = 0
+# start first loop
 run_all(i)
 
 
