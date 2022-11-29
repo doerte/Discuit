@@ -24,7 +24,6 @@ from kmodes.kmodes import KModes
 import argparse
 import pathlib
 
-#TODO: check whether absolute feature is binary! Or come up with something to handle non-binary
 #TODO: make sure each set has same number of items (with second absolute thing start backwards?)
 
 #check whether path and number of sets arguments were provided
@@ -145,8 +144,9 @@ def prepare_data(data, continuous, label, disregard):
 
 
 def clustering(transformed_data, categorical_features, continuous_features):
-    cl_range = range(2, 10)  # changed to max 10 clusters to keep speed, check which max is appropriate
-
+    # determine max number of clusters...
+    max_clus = int(len(transformed_data)/2)
+    cl_range = range(2, max_clus)  # changed to max 10 clusters to keep speed, check which max is appropriate
     # kmodes prototype for mixed numerical and categorical data
     largest_sil = (0, 0)
 
@@ -160,10 +160,14 @@ def clustering(transformed_data, categorical_features, continuous_features):
             kproto = KPrototypes(n_clusters=k, max_iter=20)
             kproto.fit_predict(mark_array, categorical=categorical_features_idx)
             sil = metrics.silhouette_score(transformed_data, kproto.labels_, sample_size=1000)
+
             if sil > largest_sil[1]:
                 largest_sil = (k, sil)
+
         kproto_final = KPrototypes(n_clusters=largest_sil[0], max_iter=20)
+
         pred_cluster = kproto_final.fit_predict(mark_array, categorical=categorical_features_idx)
+
     elif (len(categorical_features) != 0) and (len(continuous_features) == 0):
         for k in cl_range:
             kmode = KModes(n_clusters=k, init="random", n_init=5)
@@ -195,7 +199,6 @@ def clustering(transformed_data, categorical_features, continuous_features):
         for item in cluster:
             cluster_new.append(transformed_data.iloc[item].name)
         final_clusters.append(cluster_new)
-
     return final_clusters
 
 
@@ -233,7 +236,7 @@ def kwtest(label, features, sets, data):
             list = data.loc[data.set_number == s_set, feat].tolist()
             kw_input.append(list)
         stat, p = kruskal(*kw_input)
-        stats.append([label, "Kruskall-Wallis test", feat, stat, df, p])
+        stats.append([label, "Kruskal-Wallis test", feat, stat, df, p])
     return stats
 
 def chi(label, features, data):
@@ -273,16 +276,27 @@ def write_out(stats, i):
 
         for testgroup in stats:
             for test in testgroup:
-                stat_string += ("Absolute variable instance '%s': " % (stats[stats.index(testgroup)][testgroup.index(test)][0]) + stats[stats.index(testgroup)][testgroup.index(test)][1] +' for ' + stats[stats.index(testgroup)][testgroup.index(test)][2] + ": X2(%s) = %s, p = %s" % (stats[stats.index(testgroup)][testgroup.index(test)][4], round(stats[stats.index(testgroup)][testgroup.index(test)][3], 3), round(stats[stats.index(testgroup)][testgroup.index(test)][5], 3)) + ";\n")
+                stat_string += ("Absolute variable instance '%s': " % (stats[stats.index(testgroup)][testgroup.index(test)][0])
+                                + stats[stats.index(testgroup)][testgroup.index(test)][1] +' for '
+                                + stats[stats.index(testgroup)][testgroup.index(test)][2]
+                                + ": X2(%s) = %s, p = %s" % (stats[stats.index(testgroup)][testgroup.index(test)][4],
+                                                             round(stats[stats.index(testgroup)][testgroup.index(test)][3], 3),
+                                                             round(stats[stats.index(testgroup)][testgroup.index(test)][5], 3)) + ";\n")
         if i > 19:
             stat_string += ("\n In 20 iterations no split could be found that results in p>.2 for all variables.")
 
         if len(categorical_features)>0:
-            stat_string += ("\nCrosstables for the distribution of categorical features:\n\n")
+            stat_string += ("\nCross-tables for the distribution of categorical features:\n\n")
             for feat in categorical_features:
                 data_crosstab = pd.crosstab(inputD[feat],
                                     inputD['set_number'], margins=True)
                 stat_string += (data_crosstab.to_string()+"\n\n")
+
+        if len(absolute_features)>0:
+            stat_string += ("\nCross-table for the distribution of the absolute feature:\n\n")
+            data_crosstab = pd.crosstab(inputD[absolute_features[0]],
+                                    inputD['set_number'], margins=True)
+            stat_string += (data_crosstab.to_string()+"\n\n")
 
         f.write(stat_string)
         f.close()
@@ -290,16 +304,13 @@ def write_out(stats, i):
 
 def run_all(i):
     output_sets = []
-    #abs_labels = []
 
     if no_sets > 1:
         # prepare data
-        count = 0
         dat = prepare_data(inputD, continuous_features, label, disregard)
 
         # split by "absolute" feature and remove absolute features from clustering
         if len(absolute_features) == 1:
-            #abs_labels = list(set(dat[absolute_features[0]].tolist()))
             datasets = split(absolute_features[0], dat)
         else:
             datasets = [dat]
@@ -317,7 +328,9 @@ def run_all(i):
     # merge outcome into one dataframe
     final_sets = []
     for k in range(no_sets):
-        joined_set = output_sets[0][k] + output_sets[1][k]
+        joined_set = []
+        for l in range(0, inputD[absolute_features[0]].nunique()):
+            joined_set.extend(output_sets[l][k])
         final_sets.append(joined_set)
 
     set_numbers = []
