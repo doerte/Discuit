@@ -24,13 +24,9 @@ from kmodes.kmodes import KModes
 import argparse
 import pathlib
 
-# Maybe reconsider set-up for absolute feature. If absolute is present, run everything ("run all") twice instead of
-# working around things later. Only thing to consider: how to merge datafiles in the end before making output-files?
-# That part needs to happen in an outer procedure
-# This seems to be working now.
 #TODO: check whether absolute feature is binary! Or come up with something to handle non-binary
-#TODO: write statistics to file
 #TODO: make sure each set has same number of items (with second absolute thing start backwards?)
+#TODO: add text to stats output file
 
 #check whether path and number of sets arguments were provided
 parser = argparse.ArgumentParser()
@@ -281,11 +277,9 @@ def write_out(stats, i):
         for testgroup in stats:
             for test in testgroup:
                 tests.append(test)
-        print("Here", tests)
 
         #    stat_string += ("'" + stats[stats.index(test)][0] + "' (X2(%s) = %s, p = %s)" % (
         #        no_sets - 1, round(stats[stats.index(test)][1], 3), round(stats[stats.index(test)][2], 3)) + ";\n")
-        print(i)
         if i > 19:
             stat_string += ("\n In 20 iterations no split could be found that results in p>.2 for all variables.")
 
@@ -294,7 +288,6 @@ def write_out(stats, i):
     sys.exit(1)
 
 def run_all(i):
-    print('iteration:', i)
     output_sets = []
     #abs_labels = []
 
