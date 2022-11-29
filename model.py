@@ -26,7 +26,6 @@ import pathlib
 
 #TODO: check whether absolute feature is binary! Or come up with something to handle non-binary
 #TODO: make sure each set has same number of items (with second absolute thing start backwards?)
-#TODO: add text to stats output file
 
 #check whether path and number of sets arguments were provided
 parser = argparse.ArgumentParser()
@@ -270,16 +269,13 @@ def write_out(stats, i):
         iterations = i + 1
         stat_string = (
             "Number of iterations: %s \n \n"
-            "Results for the following variables:\n" % iterations)
+            "Results for the following tests:\n" % iterations)
 
         # add reporting of numbers per category per set
         tests =[]
         for testgroup in stats:
             for test in testgroup:
-                tests.append(test)
-
-        #    stat_string += ("'" + stats[stats.index(test)][0] + "' (X2(%s) = %s, p = %s)" % (
-        #        no_sets - 1, round(stats[stats.index(test)][1], 3), round(stats[stats.index(test)][2], 3)) + ";\n")
+                stat_string += ("Absolute variable instance '%s': " % (stats[stats.index(testgroup)][testgroup.index(test)][0]) + stats[stats.index(testgroup)][testgroup.index(test)][1] +' for ' + stats[stats.index(testgroup)][testgroup.index(test)][2] + ": X2(%s) = %s, p = %s" % (stats[stats.index(testgroup)][testgroup.index(test)][4], round(stats[stats.index(testgroup)][testgroup.index(test)][3], 3), round(stats[stats.index(testgroup)][testgroup.index(test)][5], 3)) + ";\n")
         if i > 19:
             stat_string += ("\n In 20 iterations no split could be found that results in p>.2 for all variables.")
 
