@@ -271,13 +271,18 @@ def write_out(stats, i):
             "Number of iterations: %s \n \n"
             "Results for the following tests:\n" % iterations)
 
-        # add reporting of numbers per category per set
-        tests =[]
         for testgroup in stats:
             for test in testgroup:
                 stat_string += ("Absolute variable instance '%s': " % (stats[stats.index(testgroup)][testgroup.index(test)][0]) + stats[stats.index(testgroup)][testgroup.index(test)][1] +' for ' + stats[stats.index(testgroup)][testgroup.index(test)][2] + ": X2(%s) = %s, p = %s" % (stats[stats.index(testgroup)][testgroup.index(test)][4], round(stats[stats.index(testgroup)][testgroup.index(test)][3], 3), round(stats[stats.index(testgroup)][testgroup.index(test)][5], 3)) + ";\n")
         if i > 19:
             stat_string += ("\n In 20 iterations no split could be found that results in p>.2 for all variables.")
+
+        if len(categorical_features)>0:
+            stat_string += ("\nCrosstables for the distribution of categorical features:\n\n")
+            for feat in categorical_features:
+                data_crosstab = pd.crosstab(inputD[feat],
+                                    inputD['set_number'], margins=True)
+                stat_string += (data_crosstab.to_string()+"\n\n")
 
         f.write(stat_string)
         f.close()
