@@ -121,15 +121,6 @@ else:
         sys.exit(1)  # abort
 
 
-def make_sets(data, n_sets, categorical, continuous):
-    # form clusters
-    clusters = clustering(data, categorical, continuous)
-
-    # divide in sets
-    sets = divide_in_sets(clusters, n_sets)
-    return sets
-
-
 def prepare_data(data, continuous, label, disregard):
     # remove label column & disregarded columns
     if len(label) != 0:
@@ -266,7 +257,7 @@ def statistics(data):
     return stats_out
 
 
-def write_out(stats, i):
+def write_out(stats, i, significant):
     # output file
     outFileName = fileName + "_out.csv"
     inputD.to_csv(outFileName, index=False)
@@ -279,6 +270,9 @@ def write_out(stats, i):
                 "Number of iterations: %s \n \n"
                 "Results for the following tests:\n" % iterations)
 
+        if significant:
+            stat_string += ("\nIn 20 iterations no split could be found that results in p>.2 for all variables.\n\n")
+
         for testgroup in stats:
             for test in testgroup:
                 stat_string += ("Absolute variable instance '%s': " % (
@@ -290,8 +284,7 @@ def write_out(stats, i):
                                                                        3], 3),
                                                              round(stats[stats.index(testgroup)][testgroup.index(test)][
                                                                        5], 3)) + ";\n")
-        if i > 19:
-            stat_string += ("\n In 20 iterations no split could be found that results in p>.2 for all variables.")
+
 
         if len(categorical_features) > 0:
             stat_string += ("\nCross-tables for the distribution of categorical features:\n\n")
@@ -305,6 +298,13 @@ def write_out(stats, i):
             data_crosstab = pd.crosstab(inputD[absolute_features[0]],
                                         inputD['set_number'], margins=True)
             stat_string += (data_crosstab.to_string() + "\n\n")
+
+        if len(continuous_features) > 0:
+            stat_string += ("\nAverage values per set:\n\n")
+            for feat in continuous_features:
+                for set in range(1,no_sets+1):
+                    mean = inputD.loc[inputD['set_number']== set , feat].mean()
+                    stat_string += (feat + " in set " + str(set) +": " + str(mean) + "\n")
 
         f.write(stat_string)
         f.close()
@@ -329,7 +329,7 @@ def run_all(i):
         print("Please use more than 1 set for this tool to be meaningful!")
         sys.exit(1)  # abort
 
-    # for each part of the absolute splitting "make_sets"
+    # for each part of the absolute splitting make sets
     for data in datasets:
         # form clusters
         clusters = clustering(data, categorical_features, continuous_features)
@@ -359,13 +359,13 @@ def run_all(i):
 
     # write to files
     if all_ns:
-        write_out(stats, i)
+        write_out(stats, i, False)
     elif i < 19:
         i = i + 1
         run_all(i)
     else:
         print("failed")
-        write_out(stats, i)
+        write_out(stats, i, True)
 
 
 ### actually run the program ###
