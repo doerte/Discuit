@@ -44,6 +44,7 @@ no_sets = int(sys.argv[2])
 # noinspection PyBroadException
 try:
     inputD = pd.read_csv(sys.argv[1])
+    fileName = pathlib.Path(sys.argv[1]).with_suffix('').name
 except FileNotFoundError:
     print("File not found.")
     sys.exit(1)  # abort
@@ -265,10 +266,12 @@ def statistics(data):
 
 def write_out(stats, i):
     # output file
-    inputD.to_csv("output.csv", index=False)
+    outFileName = fileName + "_out.csv"
+    inputD.to_csv(outFileName, index=False)
     # save statistics to file if there was more than 1 set
     if no_sets > 1:
-        f = open("statistics.txt", "w")
+        statFileName = fileName + "_stats.txt"
+        f = open(statFileName, "w")
         iterations = i + 1
         stat_string = (
                 "Number of iterations: %s \n \n"

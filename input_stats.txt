@@ -1,0 +1,50 @@
+Number of iterations: 1 
+ 
+Results for the following tests:
+Absolute variable instance '0': Kruskal-Wallis test for freq: X2(2) = 1.522, p = 0.467;
+Absolute variable instance '0': Kruskal-Wallis test for image: X2(2) = 0.178, p = 0.915;
+Absolute variable instance '0': Chi2-Test for wordclass: X2(10) = 6.227, p = 0.796;
+Absolute variable instance '0': Chi2-Test for testCat: X2(4) = 2.133, p = 0.711;
+Absolute variable instance '1': Kruskal-Wallis test for freq: X2(2) = 2.896, p = 0.235;
+Absolute variable instance '1': Kruskal-Wallis test for image: X2(2) = 0.473, p = 0.789;
+Absolute variable instance '1': Chi2-Test for wordclass: X2(10) = 7.6, p = 0.668;
+Absolute variable instance '1': Chi2-Test for testCat: X2(4) = 1.018, p = 0.907;
+Absolute variable instance '2': Kruskal-Wallis test for freq: X2(2) = 0.018, p = 0.991;
+Absolute variable instance '2': Kruskal-Wallis test for image: X2(2) = 0.351, p = 0.839;
+Absolute variable instance '2': Chi2-Test for wordclass: X2(8) = 3.378, p = 0.908;
+Absolute variable instance '2': Chi2-Test for testCat: X2(4) = 2.667, p = 0.615;
+Absolute variable instance 'overall': Kruskal-Wallis test for freq: X2(2) = 2.719, p = 0.257;
+Absolute variable instance 'overall': Kruskal-Wallis test for image: X2(2) = 0.046, p = 0.977;
+Absolute variable instance 'overall': Chi2-Test for wordclass: X2(12) = 7.525, p = 0.821;
+Absolute variable instance 'overall': Chi2-Test for testCat: X2(4) = 0.598, p = 0.963;
+
+Cross-tables for the distribution of categorical features:
+
+set_number   1   2   3  All
+wordclass                  
+1            1   1   0    2
+2            1   2   2    5
+3            2   0   2    4
+4            0   2   3    5
+5            6   5   4   15
+6            4   4   2   10
+7            5   5   6   16
+All         19  19  19   57
+
+set_number   1   2   3  All
+testCat                    
+0            9   8   8   25
+1            6   6   5   17
+2            4   5   6   15
+All         19  19  19   57
+
+
+Cross-table for the distribution of the absolute feature:
+
+set_number   1   2   3  All
+correct                    
+0            8   7   7   22
+1            6   7   6   19
+2            5   5   6   16
+All         19  19  19   57
+
