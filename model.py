@@ -146,6 +146,8 @@ def prepare_data(data, continuous, label, disregard):
 def clustering(transformed_data, categorical_features, continuous_features):
     # determine max number of clusters...
     max_clus = int(len(transformed_data) * .5)
+    if max_clus > 10:
+        max_clus = 10
     cl_range = range(2, max_clus)  # changed to max 10 clusters to keep speed, check which max is appropriate
     # kmodes prototype for mixed numerical and categorical data
     largest_sil = (0, -1)
