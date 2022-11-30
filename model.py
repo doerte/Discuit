@@ -24,23 +24,21 @@ from kmodes.kmodes import KModes
 import argparse
 import pathlib
 
-#TODO: make sure each set has same number of items (with second absolute thing start backwards?)
-
-#check whether path and number of sets arguments were provided
+# check whether path and number of sets arguments were provided
 parser = argparse.ArgumentParser()
 parser.add_argument('datapath', type=pathlib.Path, help='path to input data file (csv)')
 parser.add_argument('sets', type=int, help='provide number of desired sets')
 parser.add_argument('--columns', nargs='*',
-                    choices=['l', 'c', 'n', 'a', 'd'], help='provide the data type for each column (l(abel)/c(ategorical)'
-                                                            '/n(umerical)/a(bsolute)/d(isregard).'
-                                                            'The number of labels needs to match the number of columns'
-                                                            ' in your input file. If this is not the case you can provide '
-                                                            'them later on and your input will be ignored.'
-                                                            '"Label" and "absolute" can only be specified once.',
+                    choices=['l', 'c', 'n', 'a', 'd'],
+                    help='provide the data type for each column (l(abel)/c(ategorical)'
+                         '/n(umerical)/a(bsolute)/d(isregard).'
+                         'The number of labels needs to match the number of columns'
+                         ' in your input file. If this is not the case you can provide '
+                         'them later on and your input will be ignored.'
+                         '"Label" and "absolute" can only be specified once.',
                     default=None)
 args = parser.parse_args()
 no_sets = int(sys.argv[2])
-
 
 # read file and check if it's suitable
 # noinspection PyBroadException
@@ -117,9 +115,9 @@ else:
         print("More than one 'label' was specified. Please use -h to get help in providing suitable arguments")
         sys.exit(1)  # abort
     if len(absolute_features) > 1:
-        print("More than one 'absolute' variable was specified. Please use -h to get help in providing suitable arguments")
+        print(
+            "More than one 'absolute' variable was specified. Please use -h to get help in providing suitable arguments")
         sys.exit(1)  # abort
-
 
 
 def make_sets(data, n_sets, categorical, continuous):
@@ -129,6 +127,7 @@ def make_sets(data, n_sets, categorical, continuous):
     # divide in sets
     sets = divide_in_sets(clusters, n_sets)
     return sets
+
 
 def prepare_data(data, continuous, label, disregard):
     # remove label column & disregarded columns
@@ -145,10 +144,10 @@ def prepare_data(data, continuous, label, disregard):
 
 def clustering(transformed_data, categorical_features, continuous_features):
     # determine max number of clusters...
-    max_clus = int(len(transformed_data)/2)
+    max_clus = int(len(transformed_data) * .5)
     cl_range = range(2, max_clus)  # changed to max 10 clusters to keep speed, check which max is appropriate
     # kmodes prototype for mixed numerical and categorical data
-    largest_sil = (0, 0)
+    largest_sil = (0, -1)
 
     # this needs to be adjusted depending on input
     categorical_features_idx = [transformed_data.columns.get_loc(col) for col in categorical_features]
@@ -202,15 +201,12 @@ def clustering(transformed_data, categorical_features, continuous_features):
     return final_clusters
 
 
-def divide_in_sets(clusters, n_sets):
-    sets = []
-    for single_set in range(0, n_sets):
-        sets.append([])
-
+def divide_in_sets(clusters, output_sets):
+    # divide clusters evenly amongst desired sets
     for cluster in clusters:
         for item in cluster:
-            sets[sets.index(min(sets, key=len))].append(item)
-    return sets
+            output_sets[output_sets.index(min(output_sets, key=len))].append(item)
+
 
 def split(absolute, data):
     try:
@@ -227,6 +223,7 @@ def split(absolute, data):
 
     return data_splitted
 
+
 def kwtest(label, features, sets, data):
     stats = []
     df = len(sets) - 1
@@ -239,6 +236,7 @@ def kwtest(label, features, sets, data):
         stats.append([label, "Kruskal-Wallis test", feat, stat, df, p])
     return stats
 
+
 def chi(label, features, data):
     stats = []
     for feat in features:
@@ -247,6 +245,7 @@ def chi(label, features, data):
         stat, p, dof, expected = chi2_contingency(data_crosstab, correction=True)
         stats.append([label, "Chi2-Test", feat, stat, dof, p])
     return stats
+
 
 def statistics(data):
     stats_out = []
@@ -263,6 +262,7 @@ def statistics(data):
     stats_out.append(chi("overall", categorical_features, data))
     return stats_out
 
+
 def write_out(stats, i):
     # output file
     inputD.to_csv("output.csv", index=False)
@@ -271,39 +271,45 @@ def write_out(stats, i):
         f = open("statistics.txt", "w")
         iterations = i + 1
         stat_string = (
-            "Number of iterations: %s \n \n"
-            "Results for the following tests:\n" % iterations)
+                "Number of iterations: %s \n \n"
+                "Results for the following tests:\n" % iterations)
 
         for testgroup in stats:
             for test in testgroup:
-                stat_string += ("Absolute variable instance '%s': " % (stats[stats.index(testgroup)][testgroup.index(test)][0])
-                                + stats[stats.index(testgroup)][testgroup.index(test)][1] +' for '
+                stat_string += ("Absolute variable instance '%s': " % (
+                stats[stats.index(testgroup)][testgroup.index(test)][0])
+                                + stats[stats.index(testgroup)][testgroup.index(test)][1] + ' for '
                                 + stats[stats.index(testgroup)][testgroup.index(test)][2]
                                 + ": X2(%s) = %s, p = %s" % (stats[stats.index(testgroup)][testgroup.index(test)][4],
-                                                             round(stats[stats.index(testgroup)][testgroup.index(test)][3], 3),
-                                                             round(stats[stats.index(testgroup)][testgroup.index(test)][5], 3)) + ";\n")
+                                                             round(stats[stats.index(testgroup)][testgroup.index(test)][
+                                                                       3], 3),
+                                                             round(stats[stats.index(testgroup)][testgroup.index(test)][
+                                                                       5], 3)) + ";\n")
         if i > 19:
             stat_string += ("\n In 20 iterations no split could be found that results in p>.2 for all variables.")
 
-        if len(categorical_features)>0:
+        if len(categorical_features) > 0:
             stat_string += ("\nCross-tables for the distribution of categorical features:\n\n")
             for feat in categorical_features:
                 data_crosstab = pd.crosstab(inputD[feat],
-                                    inputD['set_number'], margins=True)
-                stat_string += (data_crosstab.to_string()+"\n\n")
+                                            inputD['set_number'], margins=True)
+                stat_string += (data_crosstab.to_string() + "\n\n")
 
-        if len(absolute_features)>0:
+        if len(absolute_features) > 0:
             stat_string += ("\nCross-table for the distribution of the absolute feature:\n\n")
             data_crosstab = pd.crosstab(inputD[absolute_features[0]],
-                                    inputD['set_number'], margins=True)
-            stat_string += (data_crosstab.to_string()+"\n\n")
+                                        inputD['set_number'], margins=True)
+            stat_string += (data_crosstab.to_string() + "\n\n")
 
         f.write(stat_string)
         f.close()
     sys.exit(1)
 
+
 def run_all(i):
     output_sets = []
+    for single_set in range(0, no_sets):
+        output_sets.append([])
 
     if no_sets > 1:
         # prepare data
@@ -320,23 +326,16 @@ def run_all(i):
 
     # for each part of the absolute splitting "make_sets"
     for data in datasets:
-        # clustering + dividing in sets
-        sets = make_sets(data, no_sets, categorical_features, continuous_features)
-        # add to list of sets for later reintegration to overall outcome sets
-        output_sets.append(sets)
+        # form clusters
+        clusters = clustering(data, categorical_features, continuous_features)
 
-    # merge outcome into one dataframe
-    final_sets = []
-    for k in range(no_sets):
-        joined_set = []
-        for l in range(0, inputD[absolute_features[0]].nunique()):
-            joined_set.extend(output_sets[l][k])
-        final_sets.append(joined_set)
+        # divide in sets
+        divide_in_sets(clusters, output_sets)
 
     set_numbers = []
     for item in inputD.index:
-        for j in range(len(final_sets)):
-            if item in final_sets[j]:
+        for j in range(len(output_sets)):
+            if item in output_sets[j]:
                 set_numbers.append(j + 1)
 
     # add new column
@@ -369,5 +368,3 @@ def run_all(i):
 i = 0
 # start first loop
 run_all(i)
-
-
