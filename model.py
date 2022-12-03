@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# TODO: work with missing data
+
 from typing import List
 
 import pandas as pd
@@ -121,7 +123,7 @@ else:
         sys.exit(1)  # abort
 
 
-def prepare_data(data, continuous, label, disregard):
+def prepare_data(data, continuous, categorical, label, disregard):
     # remove label column & disregarded columns
     if len(label) != 0:
         data = data.drop([label[0]], axis=1)
@@ -131,6 +133,17 @@ def prepare_data(data, continuous, label, disregard):
     if len(continuous) != 0:
         mms = MinMaxScaler()
         data[continuous] = mms.fit_transform(data[continuous])
+    # make sure categorical data uses numbers (for silhouette score)
+    if len(categorical) != 0:
+        for feat in categorical:
+            if data[feat].dtype != "float64" and data[feat].dtype != "int64":
+                # find unique values
+                values = data[feat].unique()
+                i = 0
+                # replace values
+                for value in values:
+                    data[feat].replace(value, i, inplace=True)
+                    i=i+1
     return data
 
 
@@ -318,7 +331,7 @@ def run_all(i):
 
     if no_sets > 1:
         # prepare data
-        dat = prepare_data(inputD, continuous_features, label, disregard)
+        dat = prepare_data(inputD, continuous_features, categorical_features, label, disregard)
 
         # split by "absolute" feature and remove absolute features from clustering
         if len(absolute_features) == 1:
