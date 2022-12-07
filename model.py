@@ -70,8 +70,9 @@ absolute_features = []
 label = []
 disregard = []
 
+
 # Check all the columns and ask about status. Label and absolute can only be chosen once.
-if len(args.columns) != len(inputD.columns):
+if args.columns == None or len(args.columns) != len(inputD.columns):
     print("You didn't provide valid data type indications when running the program. Please specify them now")
     for column in inputD.columns:
         feature = None
