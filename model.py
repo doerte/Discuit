@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # TODO: work with missing data
+# TODO: maybe include more than 1 absolute variable?
 
 from typing import List
 
@@ -131,6 +132,7 @@ def prepare_data(data, continuous, categorical, label, disregard):
         data = data.drop(disregard, axis=1)
     # transform continuous data
     if len(continuous) != 0:
+        # TODO replace md with average
         mms = MinMaxScaler()
         data[continuous] = mms.fit_transform(data[continuous])
     # make sure categorical data uses numbers (for silhouette score)
@@ -144,6 +146,7 @@ def prepare_data(data, continuous, categorical, label, disregard):
                 for value in values:
                     data[feat].replace(value, i, inplace=True)
                     i=i+1
+        # TODO handle missing data
     return data
 
 
