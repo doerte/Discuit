@@ -13,6 +13,7 @@
 # limitations under the License.
 # TODO: work with missing data
 # TODO: maybe include more than 1 absolute variable?
+# TODO: option to generate more than 1 output
 
 from typing import List
 
@@ -69,6 +70,8 @@ continuous_features = []
 absolute_features = []
 label = []
 disregard = []
+# number of runs, needs to come from input
+iterations = 15
 
 
 # Check all the columns and ask about status. Label and absolute can only be chosen once.
@@ -276,11 +279,11 @@ def statistics(data):
 
 def write_out(stats, i, significant):
     # output file
-    outFileName = fileName + "_out.csv"
+    outFileName = fileName + "_out" + str(it_num) + ".csv"
     inputD.to_csv(outFileName, index=False)
     # save statistics to file if there was more than 1 set
     if no_sets > 1:
-        statFileName = fileName + "_stats.txt"
+        statFileName = fileName + "_stats" + str(it_num) + ".txt"
         f = open(statFileName, "w")
         iterations = i + 1
         stat_string = (
@@ -325,7 +328,7 @@ def write_out(stats, i, significant):
 
         f.write(stat_string)
         f.close()
-    sys.exit(1)
+
 
 
 def run_all(i):
@@ -386,7 +389,16 @@ def run_all(i):
 
 
 ### actually run the program ###
+it_num = 0
+for _ in range(iterations):
+    print(it_num)
+    # initiate loop-tracking
+    i = 0
+    # start first loop
+    run_all(i)
+    it_num = it_num + 1
+
 # initiate loop-tracking
-i = 0
+#i = 0
 # start first loop
-run_all(i)
+#run_all(i)
