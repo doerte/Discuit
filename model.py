@@ -13,7 +13,6 @@
 # limitations under the License.
 # TODO: work with missing data
 # TODO: maybe include more than 1 absolute variable?
-# TODO: option to generate more than 1 output
 
 from typing import List
 
@@ -41,6 +40,9 @@ parser.add_argument('--columns', nargs='*',
                          'them later on and your input will be ignored.'
                          '"Label" and "absolute" can only be specified once.',
                     default=None)
+parser.add_argument('--runs', type=int,
+                         help='indicate how many different output options you want to generate',
+                    default=1)
 args = parser.parse_args()
 no_sets = int(sys.argv[2])
 
@@ -70,8 +72,8 @@ continuous_features = []
 absolute_features = []
 label = []
 disregard = []
-# number of runs, needs to come from input
-iterations = 15
+# number of runs provided as an argument. If nothing is provided it's 1. Also needs to come from GUI!
+iterations = args.runs
 
 
 # Check all the columns and ask about status. Label and absolute can only be chosen once.
