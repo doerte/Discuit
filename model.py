@@ -279,7 +279,7 @@ def statistics(data):
     return stats_out
 
 
-def write_out(stats, i, significant):
+def write_out(stats, i, significant, it_num):
     # output file
     outFileName = fileName + "_out" + str(it_num) + ".csv"
     inputD.to_csv(outFileName, index=False)
@@ -333,7 +333,7 @@ def write_out(stats, i, significant):
 
 
 
-def run_all(i):
+def run_all(i, it_num):
     output_sets = []
     for single_set in range(0, no_sets):
         output_sets.append([])
@@ -381,24 +381,33 @@ def run_all(i):
 
     # write to files
     if all_ns:
-        write_out(stats, i, False)
+        write_out(stats, i, False, it_num)
     elif i < 19:
         i = i + 1
-        run_all(i)
+        run_all(i, it_num)
     else:
         print("failed")
-        write_out(stats, i, True)
+        write_out(stats, i, True, it_num)
 
 
 ### actually run the program ###
-it_num = 0
-for _ in range(iterations):
-    print(it_num)
+
+for it_num in range(iterations):
+    # progress bar
+    perc = 20//iterations
+    sys.stdout.write('\r')
+    sys.stdout.write("[%-20s] %d%%" % ('=' * it_num * perc, it_num / iterations * 100))
+    sys.stdout.flush()
+
     # initiate loop-tracking
     i = 0
     # start first loop
-    run_all(i)
-    it_num = it_num + 1
+    run_all(i, it_num)
+
+# final progress bar
+sys.stdout.write('\r')
+sys.stdout.write("[%-20s] %d%%" % ('=' * 20, 100))
+sys.stdout.flush()
 
 # initiate loop-tracking
 #i = 0
